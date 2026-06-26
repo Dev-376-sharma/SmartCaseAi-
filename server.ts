@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import type { Case, DiaryEntry, Document, Settings } from "./src/types";
 
 dotenv.config();
@@ -411,7 +411,7 @@ Request formal digital assets, proceed with interrogations, and finalize the cha
       if (ai) {
         try {
           const response = await ai.models.generateContent({
-            model: "gemini-1.5-flash",
+            model: "gemini-2.5-flash",
             contents: prompt,
             config: {
               systemInstruction,
@@ -523,6 +523,255 @@ app.put("/api/settings", (req, res) => {
     ...req.body
   };
   res.json(settingsStore);
+});
+
+// ==========================================
+// CENTRALIZED LEGAL & ANALYTICS AI ROUTING
+// ==========================================
+
+// 1. POST /api/ai/suggest-sections
+// Accepts: { crimeDescription: string }
+// Returns: { sections: Array<{ section, act, title, explanation, applicability }> }
+app.post("/api/ai/suggest-sections", async (req, res) => {
+  const { crimeDescription } = req.body;
+  if (!crimeDescription || typeof crimeDescription !== "string") {
+    return res.status(400).json({ error: "crimeDescription is required and must be a string." });
+  }
+
+  const normalizedDesc = crimeDescription.toLowerCase();
+
+  // Robust Offline Fallback: Local rule-based legal sections dictionary
+  const fallbackSections = [];
+  if (normalizedDesc.includes("theft") || normalizedDesc.includes("stolen") || normalizedDesc.includes("steal") || normalizedDesc.includes("rob") || normalizedDesc.includes("snatch")) {
+    fallbackSections.push({
+      section: "IPC Section 379",
+      act: "Indian Penal Code",
+      title: "Punishment for Theft",
+      explanation: "Whoever commits theft shall be punished with imprisonment of either description for a term which may extend to three years, or with fine, or with both.",
+      applicability: "Applies directly to the unauthorized removal/stretching of movable property without consent."
+    });
+  }
+  if (normalizedDesc.includes("fraud") || normalizedDesc.includes("otp") || normalizedDesc.includes("online") || normalizedDesc.includes("cyber") || normalizedDesc.includes("phishing") || normalizedDesc.includes("scam") || normalizedDesc.includes("cheat") || normalizedDesc.includes("internet")) {
+    fallbackSections.push({
+      section: "IT Act Section 66D",
+      act: "Information Technology Act, 2000",
+      title: "Punishment for cheating by personation by using computer resource",
+      explanation: "Whoever, by means of any communication device or computer resource cheats by personating, shall be punished with imprisonment of either description for a term which may extend to three years and shall also be liable to fine which may extend to one lakh rupees.",
+      applicability: "Applicable to online/OTP scam calls, cyber phishing, and identity cheating via electronic communications."
+    });
+    fallbackSections.push({
+      section: "IPC Section 420",
+      act: "Indian Penal Code",
+      title: "Cheating and dishonestly inducing delivery of property",
+      explanation: "Cheating and dishonestly inducing delivery of property is punishable with imprisonment up to 7 years and fine.",
+      applicability: "Applies to fraudulent transfer of funds, online cheating, and inducing victims to share confidential banking OTPs."
+    });
+  }
+  if (normalizedDesc.includes("assault") || normalizedDesc.includes("hurt") || normalizedDesc.includes("beat") || normalizedDesc.includes("attack") || normalizedDesc.includes("wound") || normalizedDesc.includes("hit") || normalizedDesc.includes("slap") || normalizedDesc.includes("abuse")) {
+    fallbackSections.push({
+      section: "IPC Section 323",
+      act: "Indian Penal Code",
+      title: "Punishment for voluntarily causing hurt",
+      explanation: "Whoever, except in the case provided for by section 334, voluntarily causes hurt, shall be punished with imprisonment of either description for a term which may extend to one year, or with fine which may extend to one thousand rupees, or with both.",
+      applicability: "Applies to cases of physical assault, fist-fights, or minor body injuries caused voluntarily."
+    });
+    if (normalizedDesc.includes("woman") || normalizedDesc.includes("female") || normalizedDesc.includes("lady") || normalizedDesc.includes("girl") || normalizedDesc.includes("modesty") || normalizedDesc.includes("harass")) {
+      fallbackSections.push({
+        section: "IPC Section 354",
+        act: "Indian Penal Code",
+        title: "Assault or criminal force to woman with intent to outrage her modesty",
+        explanation: "Punishable with imprisonment of either description for a term which shall not be less than one year but which may extend to five years, and shall also be liable to fine.",
+        applicability: "Applies specifically when criminal force or physical assault is committed against a female with intent to outrage her modesty."
+      });
+    }
+  }
+
+  // General catch-all fallback for unrecognized descriptions
+  if (fallbackSections.length === 0) {
+    fallbackSections.push({
+      section: "IPC Section 506",
+      act: "Indian Penal Code",
+      title: "Punishment for Criminal Intimidation",
+      explanation: "Whoever commits the offense of criminal intimidation shall be punished with imprisonment of either description for a term which may extend to two years, or with fine, or with both.",
+      applicability: "Generic fallback for threat or intimidation associated with disputes or grievances."
+    });
+  }
+
+  try {
+    if (ai) {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: `Analyze the following crime description and suggest relevant IPC (Indian Penal Code) or IT Act sections that are highly applicable.
+
+Crime Description:
+"${crimeDescription}"
+
+Ensure you suggest specific, accurate sections. Provide detailed explanation, act name, section title, and applicability details.`,
+        config: {
+          systemInstruction: "You are an expert legal AI assisting police officers. Identify real legal sections from the Indian Penal Code (IPC) or Information Technology (IT) Act. Answer strictly in JSON format as specified.",
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                section: { type: Type.STRING, description: "Section name and number (e.g., IPC Section 379)" },
+                act: { type: Type.STRING, description: "Name of the Act (e.g., Indian Penal Code or Information Technology Act, 2000)" },
+                title: { type: Type.STRING, description: "The legal title of the section (e.g., Punishment for Theft)" },
+                explanation: { type: Type.STRING, description: "Brief official legal definition or description of the section" },
+                applicability: { type: Type.STRING, description: "How this specific section applies to the provided crime description" }
+              },
+              required: ["section", "act", "title", "explanation", "applicability"]
+            }
+          }
+        }
+      });
+
+      const text = response.text;
+      if (text) {
+        const sections = JSON.parse(text);
+        return res.json({ sections });
+      }
+    }
+  } catch (error) {
+    console.error("Gemini legal section suggestion error:", error);
+  }
+
+  // Serve fully matched local fallbacks if offline or if API key is invalid
+  res.json({ sections: fallbackSections });
+});
+
+// 2. POST /api/ai/investigation-summary
+// Accepts: { caseId: string }
+// Returns: { overview, timeline: Array<{ date, activityType, description, officerNotes }>, riskIndicators: string[], importantEntities: string[] }
+app.post("/api/ai/investigation-summary", async (req, res) => {
+  const { caseId } = req.body;
+  if (!caseId) {
+    return res.status(400).json({ error: "caseId is required" });
+  }
+
+  // 1. Locate the Case record
+  const kase = caseStore.find(c => c.id === caseId);
+  if (!kase) {
+    return res.status(404).json({ error: "Case record not found" });
+  }
+
+  // 2. Locate chronological Diaries linked to this case
+  const diaries = diaryStore.filter(d => d.caseId === caseId);
+
+  // 3. Prepare Offline Fallback Elements: Chronological timeline mapping
+  const timeline = diaries.map(d => ({
+    date: d.date,
+    activityType: d.activityType,
+    description: d.description,
+    officerNotes: d.officerNotes || ""
+  })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  // Entity extraction via fallback heuristics
+  const importantEntities: string[] = [];
+  if (kase.complainantName) importantEntities.push(`${kase.complainantName} (Complainant)`);
+  if (kase.accusedName && kase.accusedName !== "Unknown") importantEntities.push(`${kase.accusedName} (Accused)`);
+  if (kase.location) importantEntities.push(`${kase.location} (Crime Scene)`);
+
+  diaries.forEach(d => {
+    const witnessMatch = d.description.match(/(?:witness|shopkeeper|officer|individual|informant)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/);
+    if (witnessMatch && witnessMatch[1]) {
+      const name = witnessMatch[1];
+      if (!importantEntities.some(e => e.includes(name))) {
+        importantEntities.push(`${name} (Witness / Person of Interest)`);
+      }
+    }
+  });
+
+  const fallbackSummary = {
+    overview: `This case concerns "${kase.crimeCategory}" at "${kase.location}" registered as FIR ${kase.firNumber}. The incident occurred on ${kase.incidentDate} involving complainant ${kase.complainantName} and accused ${kase.accusedName}. Current status is: ${kase.status}.`,
+    timeline: timeline,
+    riskIndicators: [
+      `Active Investigation status is "${kase.status}".`,
+      diaries.length === 0 ? "No diary progress logged yet, risk of investigation stall." : "Chronological activities are being tracked.",
+      kase.accusedName === "Unknown" ? "The suspect identity is not fully verified yet." : "Suspect has been named in primary records."
+    ],
+    importantEntities: importantEntities
+  };
+
+  try {
+    if (ai) {
+      const diariesContext = diaries.map((d, i) => `
+Diary Entry #${i + 1}:
+- Date: ${d.date}
+- Type: ${d.activityType}
+- Action: ${d.description}
+- Notes: ${d.officerNotes}
+`).join("\n");
+
+      const prompt = `Analyze the central case details and chronological investigation diaries below. Compile a comprehensive, highly accurate analysis covering Overview, Timeline, Risk Indicators, and Important Entities.
+
+[CASE DETAILS]
+- FIR Number: ${kase.firNumber}
+- Category: ${kase.crimeCategory}
+- Date: ${kase.incidentDate}
+- Location: ${kase.location}
+- Complainant: ${kase.complainantName}
+- Accused: ${kase.accusedName}
+- Raw Description: ${kase.crimeDescription}
+
+[INVESTIGATION DIARY LOGS]
+${diariesContext.length > 0 ? diariesContext : "No diary entries logged yet."}
+
+You must return a structured JSON object strictly adhering to the specified schema. No preambles, no explanation.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+          systemInstruction: "You are a professional criminal analyst AI. Return complete structured analyses of police dockets in the specified schema.",
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              overview: { type: Type.STRING, description: "A highly concise paragraph synthesizing the case origin, prime incident details, and core legal focus." },
+              timeline: {
+                type: Type.ARRAY,
+                description: "Chronological sequence of key investigative activities matching the diaries.",
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    date: { type: Type.STRING },
+                    activityType: { type: Type.STRING },
+                    description: { type: Type.STRING },
+                    officerNotes: { type: Type.STRING }
+                  },
+                  required: ["date", "activityType", "description", "officerNotes"]
+                }
+              },
+              riskIndicators: {
+                type: Type.ARRAY,
+                description: "Array of risk assessment points (e.g. suspect absconding, missing CCTV footage, stalled logs, lack of physical evidence).",
+                items: { type: Type.STRING }
+              },
+              importantEntities: {
+                type: Type.ARRAY,
+                description: "List of key human actors (complainant, suspect, witnesses), locations, vehicles, and assets identified in case and logs.",
+                items: { type: Type.STRING }
+              }
+            },
+            required: ["overview", "timeline", "riskIndicators", "importantEntities"]
+          }
+        }
+      });
+
+      const text = response.text;
+      if (text) {
+        const parsed = JSON.parse(text);
+        return res.json(parsed);
+      }
+    }
+  } catch (error) {
+    console.error("Gemini investigation summary error:", error);
+  }
+
+  // Return mapped structured fallback if offline or if API key is invalid
+  res.json(fallbackSummary);
 });
 
 // ==========================================

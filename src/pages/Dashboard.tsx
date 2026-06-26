@@ -16,9 +16,9 @@ export default function Dashboard() {
   return (
     <div>
       {/* Hero Section Top */}
-      <div className="card" style={{ marginBottom: '2rem', textAlign: 'center', padding: '3rem 2rem', background: 'var(--sidebar-bg)', color: '#FFFFFF', border: 'none' }}>
-        <h2 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '1rem', color: '#FFFFFF', letterSpacing: '-0.02em' }}>One Case. One Record. Zero Duplication.</h2>
-        <p style={{ fontSize: '1.1rem', color: 'var(--sidebar-text)', maxWidth: '600px', margin: '0 auto', lineHeight: '1.6' }}>
+      <div className="card hero-card-premium" style={{ marginBottom: '2rem', textAlign: 'center', padding: '3.5rem 2rem' }}>
+        <h2 className="gradient-text" style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '1rem', letterSpacing: '-0.02em' }}>One Case. One Record. Zero Duplication.</h2>
+        <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', maxWidth: '600px', margin: '0 auto', lineHeight: '1.6' }}>
           Reduce repetitive documentation with AI-powered case summaries and investigation reports.
         </p>
       </div>
@@ -86,9 +86,9 @@ export default function Dashboard() {
       </div>
 
       {/* Hero Section Bottom */}
-      <div className="card" style={{ marginTop: '2rem', textAlign: 'center', padding: '3rem 2rem', background: 'var(--surface)', border: '1px solid var(--border)' }}>
-        <h2 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '1rem', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>One Case. One Record. Zero Duplication.</h2>
-        <p style={{ fontSize: '1rem', color: 'var(--text-secondary)', maxWidth: '600px', margin: '0 auto', lineHeight: '1.6' }}>
+      <div className="card hero-card-premium" style={{ marginTop: '2rem', textAlign: 'center', padding: '3.5rem 2rem' }}>
+        <h2 className="gradient-text" style={{ fontSize: '2.25rem', fontWeight: '800', marginBottom: '1rem', letterSpacing: '-0.02em' }}>One Case. One Record. Zero Duplication.</h2>
+        <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', maxWidth: '600px', margin: '0 auto', lineHeight: '1.6' }}>
           Reduce repetitive documentation with AI-powered case summaries and investigation reports.
         </p>
       </div>

@@ -56,6 +56,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <div className="layout">
+      {/* Background glowing mesh */}
+      <div className="bg-mesh">
+        <div className="bg-orb bg-orb-1"></div>
+        <div className="bg-orb bg-orb-2"></div>
+        <div className="bg-orb bg-orb-3"></div>
+      </div>
+
       {/* Sidebar */}
       <aside className="sidebar">
         {/* Logo */}
