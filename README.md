@@ -1,5 +1,5 @@
 # SmartCase AI
-### One Case. One Record. Zero Duplication.
+### One Case. One Record. Zero Duplication.  
 SmartCase AI is an AI-powered police case workflow management system designed to reduce repetitive documentation during criminal investigations.
 The platform enables officers to register FIRs, maintain investigation diaries, and automatically generate professional investigation reports using AI.
 The objective is to create a centralized case management workflow where information is entered once and reused throughout the investigation lifecycle.
@@ -29,6 +29,15 @@ SmartCase AI addresses these challenges by providing a unified case record and A
 * Case overview
 * Status tracking
 * Recent activity
+
+### IPC / Legal Section Suggestion
+*DescriptionAI suggests relevant IPC/legal sections based on case description
+
+###AI Investigation Summary
+*DescriptionGenerate concise investigation summaries.
+* Crime overview
+* Timeline
+* Risk indicators
 
 ### Investigation Diary
 * Add diary entries
