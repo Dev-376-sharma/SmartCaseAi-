@@ -31,9 +31,9 @@ SmartCase AI addresses these challenges by providing a unified case record and A
 * Recent activity
 
 ### IPC / Legal Section Suggestion
-*DescriptionAI suggests relevant IPC/legal sections based on case description
+DescriptionAI suggests relevant IPC/legal sections based on case description
 
-###AI Investigation Summary
+AI Investigation Summary
 *DescriptionGenerate concise investigation summaries.
 * Crime overview
 * Timeline
