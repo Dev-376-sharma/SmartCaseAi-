@@ -72,10 +72,7 @@ using Google Gemini AI.
 
 ### Database
 * PostgreSQL
-
-### Authentication
-* JWT
-
+  
 ### AI Integration
 * Google Gemini API
 
