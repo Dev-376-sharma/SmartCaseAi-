@@ -103,7 +103,8 @@ Core Entities:
 * Evidence Management
 * Witness Management
 * Legal Section Recommendation
-* Multilingual Support
+* Multilingual Support like ( State wise Gujarati and Hindi )
+* Officer level wise GRANT permissiom
 * Audit Logging
 * Court Document Automation
 * Mobile Application
